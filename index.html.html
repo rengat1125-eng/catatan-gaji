@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CATATAN GAJI</title>
+<style>
+:root{--bg:#f3f6fa;--card:#fff;--text:#172033;--muted:#667085;--border:#d9e1ea;--dark:#172033;--green:#16a34a;--orange:#f59e0b;--blue:#2563eb;--red:#dc2626}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(135deg,#eef4ff,var(--bg));color:var(--text)}
+.container{width:min(1180px,94%);margin:24px auto 50px}
+.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
+h1{margin:0;font-size:30px}.subtitle{margin:5px 0;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}button{border:0;border-radius:10px;padding:11px 14px;font-weight:700;cursor:pointer}
+.secondary{background:#fff;border:1px solid var(--border)}.danger{background:var(--red);color:#fff}
+.grid{display:grid;grid-template-columns:370px 1fr;gap:16px}
+.card{background:var(--card);padding:20px;border-radius:18px;box-shadow:0 10px 30px rgba(15,23,42,.08);margin-bottom:16px}
+label{font-weight:700;font-size:14px;display:block;margin:12px 0 6px}
+input,select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:15px;outline:none;background:#fff}
+input:focus,select:focus{border-color:var(--blue)}
+.status-title{margin-top:15px;font-size:14px;font-weight:700}
+.status{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:7px}
+.status button{color:#fff;padding:12px 6px;background:#98a2b3}.status .active{outline:3px solid rgba(37,99,235,.18);transform:translateY(-1px)}
+.status .libur{background:var(--orange)}.status .masuk{background:var(--green)}.status .setengah{background:var(--blue)}
+#save,#saveSalary{width:100%;margin-top:17px;background:var(--dark);color:#fff;font-size:15px}
+.message{margin-top:12px;padding:10px;border-radius:10px;display:none;text-align:center;font-weight:700}
+.success{display:block;background:#dcfce7;color:#166534}.error{display:block;background:#fee2e2;color:#991b1b}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.stat{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:12px}
+.stat small{color:var(--muted);display:block;margin-bottom:5px}.stat b{font-size:19px}
+.table-wrap{overflow:auto}.filter{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}.filter input{max-width:220px}
+table{width:100%;border-collapse:collapse;min-width:800px}th,td{padding:11px 9px;border-bottom:1px solid #edf0f4;text-align:left;font-size:14px}th{background:#f8fafc}
+.badge{display:inline-block;padding:5px 8px;border-radius:999px;font-size:12px;font-weight:700}.badge.masuk{background:#dcfce7;color:#166534}.badge.libur{background:#fef3c7;color:#92400e}.badge.setengah{background:#dbeafe;color:#1d4ed8}
+.empty{text-align:center;color:var(--muted);padding:24px}.note{font-size:12px;color:var(--muted);margin-top:8px}
+.salary-info{margin-top:9px;padding:10px;border:1px solid #dbeafe;background:#eff6ff;border-radius:10px;color:#1d4ed8;font-size:13px}
+.total-big{font-size:25px;font-weight:800;margin-top:5px}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.summary{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.status{grid-template-columns:1fr}.summary{grid-template-columns:1fr 1fr}h1{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="top">
+    <div>
+      <h1>CATATAN GAJI</h1>
+      <div class="subtitle">Gaji otomatis bertambah berdasarkan kehadiran</div>
+    </div>
+    <div class="actions">
+      <button class="secondary" onclick="exportCSV()">EXPORT CSV</button>
+      <button class="danger" onclick="hapusSemua()">HAPUS SEMUA</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h3 style="margin-top:0">Atur Gaji & Gaji Terpakai</h3>
+
+        <label for="gajiNama">NAMA</label>
+        <input id="gajiNama" placeholder="Contoh: Budi">
+
+        <label for="totalGaji">GAJI / HARI</label>
+        <input id="totalGaji" type="number" min="0" step="1000" placeholder="Contoh: 150000">
+
+        <button id="saveSalary" onclick="simpanGajiNama()">SIMPAN GAJI</button>
+
+        <label for="pakaiNama">NAMA YANG GAJINYA TERPAKAI</label>
+        <select id="pakaiNama" onchange="tampilGajiTerpakai()">
+          <option value="">-- Pilih nama --</option>
+        </select>
+
+        <div id="usedInfo" class="salary-info">Pilih nama untuk melihat gaji terpakai.</div>
+
+        <label for="gajiTerpakai">TAMBAH GAJI TERPAKAI</label>
+        <input id="gajiTerpakai" type="number" min="0" step="1000" placeholder="Contoh: 50000">
+
+        <button id="saveUsed" onclick="tambahGajiTerpakai()" style="width:100%;margin-top:12px;background:#dc2626;color:#fff;font-size:15px">
+          TAMBAH GAJI TERPAKAI
+        </button>
+
+        <div id="salaryMessage" class="message"></div>
+        <div class="note">
+          Gaji terpakai akan mengurangi <b>SISA GAJI</b>, tetapi tidak mengubah gaji/hari.
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">Catat Kehadiran</h3>
+
+        <label for="nama">NAMA</label>
+        <select id="nama" onchange="namaDipilih()">
+          <option value="">-- Pilih nama pekerja --</option>
+        </select>
+
+        <div id="salaryInfo" class="salary-info">Pilih nama untuk melihat gaji harian dan total gaji terkumpul.</div>
+
+        <label for="tanggal">TANGGAL</label>
+        <input id="tanggal" type="date">
+
+        <div class="status-title">STATUS</div>
+        <div class="status">
+          <button id="s-libur" class="libur" onclick="pilihStatus('LIBUR')">LIBUR</button>
+          <button id="s-masuk" class="masuk" onclick="pilihStatus('MASUK')">MASUK</button>
+          <button id="s-setengah" class="setengah" onclick="pilihStatus('SETENGAH HARI')">SETENGAH HARI</button>
+        </div>
+
+        <button id="save" onclick="simpanAbsensi()">SIMPAN ABSENSI</button>
+        <div id="message" class="message"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3 style="margin-top:0">Ringkasan Gaji</h3>
+
+        <div class="summary">
+          <div class="stat"><small>Jumlah Nama</small><b id="totalNama">0</b></div>
+          <div class="stat"><small>Gaji Terkumpul</small><b id="totalGajiRingkas">Rp0</b></div>
+          <div class="stat"><small>Gaji Terpakai</small><b id="totalGajiTerpakai">Rp0</b></div>
+          <div class="stat"><small>Sisa Gaji</small><b id="totalSisaGaji">Rp0</b></div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>NAMA</th>
+                <th>GAJI/HARI</th>
+                <th>MASUK</th>
+                <th>SETENGAH</th>
+                <th>LIBUR</th>
+                <th>TERKUMPUL</th>
+                <th>TERPAKAI</th>
+                <th>SISA</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="salaryBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">Riwayat Kehadiran</h3>
+
+        <div class="filter">
+          <input id="cari" placeholder="Cari nama..." oninput="render()">
+          <input id="filterTanggal" type="date" onchange="render()">
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>NAMA</th><th>TANGGAL</th><th>STATUS</th><th>NILAI HARI</th><th></th></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let salaries=JSON.parse(localStorage.getItem('catatanGajiSalaries')||'{}');
+let usedSalaries=JSON.parse(localStorage.getItem('catatanGajiUsed')||'{}');
+let attendance=JSON.parse(localStorage.getItem('catatanGajiAttendance')||'[]');
+let statusDipilih='';
+
+function hariIni(){
+  const d=new Date(),off=d.getTimezoneOffset();
+  return new Date(d.getTime()-off*60000).toISOString().slice(0,10);
+}
+document.getElementById('tanggal').value=hariIni();
+
+function rupiah(n){
+  return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0);
+}
+function formatTanggal(s){
+  const [y,m,d]=s.split('-');return `${d}/${m}/${y}`;
+}
+function esc(v){
+  return String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
+}
+function nilaiHari(nama,status){
+  const g=Number(salaries[nama]||0);
+  if(status==='MASUK') return g;
+  if(status==='SETENGAH HARI') return g/2;
+  return 0;
+}
+function totalNama(nama){
+  return attendance.filter(x=>x.nama===nama).reduce((sum,x)=>sum+nilaiHari(nama,x.status),0);
+}
+function gajiTerpakai(nama){
+  return Number(usedSalaries[nama]||0);
+}
+function sisaGaji(nama){
+  return totalNama(nama)-gajiTerpakai(nama);
+}
+function show(id,text,type){
+  const el=document.getElementById(id);
+  el.textContent=text;
+  el.className='message '+(type||'');
+  el.style.display=type?'block':'none';
+}
+function refreshNames(){
+  const sel=document.getElementById('nama');
+  const old=sel.value;
+  const names=Object.keys(salaries).sort((a,b)=>a.localeCompare(b,'id'));
+  sel.innerHTML='<option value="">-- Pilih nama pekerja --</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  if(names.includes(old))sel.value=old;
+}
+function namaDipilih(){
+  const n=document.getElementById('nama').value;
+  const info=document.getElementById('salaryInfo');
+  if(!n){info.textContent='Pilih nama untuk melihat gaji harian dan total gaji terkumpul.';return;}
+  info.innerHTML=`Gaji/hari: <b>${rupiah(salaries[n])}</b><br>Total gaji terkumpul: <span class="total-big">${rupiah(totalNama(n))}</span>`;
+}
+function pilihStatus(s){
+  statusDipilih=s;
+  document.querySelectorAll('.status button').forEach(b=>b.classList.remove('active'));
+  if(s==='LIBUR')document.getElementById('s-libur').classList.add('active');
+  if(s==='MASUK')document.getElementById('s-masuk').classList.add('active');
+  if(s==='SETENGAH HARI')document.getElementById('s-setengah').classList.add('active');
+  show('message','','');
+}
+function simpanGajiNama(){
+  const nama=document.getElementById('gajiNama').value.trim();
+  const gaji=document.getElementById('totalGaji').value;
+  if(!nama)return show('salaryMessage','Nama wajib diisi.','error');
+  if(gaji===''||Number(gaji)<0)return show('salaryMessage','Gaji per hari wajib diisi.','error');
+
+  salaries[nama]=Number(gaji);
+  localStorage.setItem('catatanGajiSalaries',JSON.stringify(salaries));
+  document.getElementById('gajiNama').value='';
+  document.getElementById('totalGaji').value='';
+  refreshNames();
+  refreshUsedNames();
+  document.getElementById('nama').value=nama;
+  namaDipilih();
+  render();
+  show('salaryMessage',`Gaji/hari ${nama} = ${rupiah(gaji)} berhasil disimpan.`,'success');
+}
+function refreshUsedNames(){
+  const sel=document.getElementById('pakaiNama');
+  const old=sel.value;
+  const names=Object.keys(salaries).sort((a,b)=>a.localeCompare(b,'id'));
+  sel.innerHTML='<option value="">-- Pilih nama --</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  if(names.includes(old)) sel.value=old;
+  tampilGajiTerpakai();
+}
+function tampilGajiTerpakai(){
+  const nama=document.getElementById('pakaiNama').value;
+  const info=document.getElementById('usedInfo');
+  if(!nama){
+    info.textContent='Pilih nama untuk melihat gaji terpakai.';
+    return;
+  }
+  info.innerHTML=`Gaji terkumpul: <b>${rupiah(totalNama(nama))}</b><br>Gaji terpakai: <b>${rupiah(gajiTerpakai(nama))}</b><br>Sisa gaji: <span class="total-big">${rupiah(sisaGaji(nama))}</span>`;
+}
+function tambahGajiTerpakai(){
+  const nama=document.getElementById('pakaiNama').value;
+  const nominal=Number(document.getElementById('gajiTerpakai').value);
+  if(!nama)return show('salaryMessage','Pilih nama terlebih dahulu.','error');
+  if(!Number.isFinite(nominal)||nominal<=0)return show('salaryMessage','Masukkan nominal gaji terpakai yang lebih dari 0.','error');
+
+  const terkumpul=totalNama(nama);
+  const sudahTerpakai=gajiTerpakai(nama);
+  const sisa=terkumpul-sudahTerpakai;
+
+  if(nominal>sisa){
+    return show('salaryMessage',`Gaji terpakai tidak boleh lebih dari sisa gaji ${rupiah(sisa)}.`,'error');
+  }
+
+  usedSalaries[nama]=sudahTerpakai+nominal;
+  localStorage.setItem('catatanGajiUsed',JSON.stringify(usedSalaries));
+  document.getElementById('gajiTerpakai').value='';
+  tampilGajiTerpakai();
+  render();
+  show('salaryMessage',`Gaji terpakai ${rupiah(nominal)} untuk ${nama} berhasil ditambahkan.`,'success');
+}
+function simpanAbsensi(){
+  const nama=document.getElementById('nama').value;
+  const tanggal=document.getElementById('tanggal').value;
+  if(!nama)return show('message','Pilih nama pekerja terlebih dahulu.','error');
+  if(!tanggal)return show('message','Tanggal wajib diisi.','error');
+  if(!statusDipilih)return show('message','Pilih LIBUR, MASUK, atau SETENGAH HARI.','error');
+
+  // Cegah 1 nama dicatat dua kali pada tanggal yang sama.
+  const sudahAda=attendance.some(x=>x.nama===nama&&x.tanggal===tanggal);
+  if(sudahAda)return show('message',`${nama} sudah memiliki absensi pada tanggal ${formatTanggal(tanggal)}.`,'error');
+
+  attendance.push({nama,tanggal,status:statusDipilih});
+  localStorage.setItem('catatanGajiAttendance',JSON.stringify(attendance));
+
+  document.querySelectorAll('.status button').forEach(b=>b.classList.remove('active'));
+  statusDipilih='';
+  render();
+  namaDipilih();
+  show('message',`Absensi ${nama} disimpan. Total gaji sekarang ${rupiah(totalNama(nama))}.`,'success');
+}
+function hapusGaji(nama){
+  if(!nama || !Object.prototype.hasOwnProperty.call(salaries,nama)) return;
+  const nilai = salaries[nama];
+  if(confirm(`Hapus gaji/hari ${nama} (${rupiah(nilai)})? Riwayat absensi tetap ada.`)){
+    delete salaries[nama];
+    delete usedSalaries[nama];
+    localStorage.setItem('catatanGajiSalaries',JSON.stringify(salaries));
+    localStorage.setItem('catatanGajiUsed',JSON.stringify(usedSalaries));
+    refreshNames();
+    refreshUsedNames();
+    document.getElementById('nama').value='';
+    namaDipilih();
+    render();
+    show('salaryMessage',`Pengaturan gaji ${nama} berhasil dihapus.`,'success');
+  }
+}
+function hapusAbsensi(i){
+  i = Number(i);
+  if (!Number.isInteger(i) || i < 0 || i >= attendance.length) return;
+  const item = attendance[i];
+  if(confirm(`Hapus absensi ${item.nama} pada ${formatTanggal(item.tanggal)}?`)){
+    attendance.splice(i,1);
+    localStorage.setItem('catatanGajiAttendance',JSON.stringify(attendance));
+    render();
+    namaDipilih();
+    show('message', 'Riwayat absensi berhasil dihapus. Total gaji diperbarui.', 'success');
+  }
+}
+function hapusSemua(){
+  if(confirm('Hapus SEMUA gaji dan riwayat absensi?')){
+    salaries={};usedSalaries={};attendance=[];
+    localStorage.removeItem('catatanGajiSalaries');
+    localStorage.removeItem('catatanGajiUsed');
+    localStorage.removeItem('catatanGajiAttendance');
+    refreshNames();
+    refreshUsedNames();
+    render();namaDipilih();
+    show('message','Semua data berhasil dihapus.','success');
+  }
+}
+function render(){
+  const names=Object.keys(salaries).sort((a,b)=>a.localeCompare(b,'id'));
+  document.getElementById('totalNama').textContent=names.length;
+  const totalTerkumpul=names.reduce((s,n)=>s+totalNama(n),0);
+  const totalTerpakai=names.reduce((s,n)=>s+gajiTerpakai(n),0);
+  document.getElementById('totalGajiRingkas').textContent=rupiah(totalTerkumpul);
+  document.getElementById('totalGajiTerpakai').textContent=rupiah(totalTerpakai);
+  document.getElementById('totalSisaGaji').textContent=rupiah(totalTerkumpul-totalTerpakai);
+
+  document.getElementById('salaryBody').innerHTML=names.length?names.map((n,idx)=>{
+    const a=attendance.filter(x=>x.nama===n);
+    return `<tr>
+      <td>${esc(n)}</td>
+      <td>${rupiah(salaries[n])}</td>
+      <td>${a.filter(x=>x.status==='MASUK').length}</td>
+      <td>${a.filter(x=>x.status==='SETENGAH HARI').length}</td>
+      <td>${a.filter(x=>x.status==='LIBUR').length}</td>
+      <td><b>${rupiah(totalNama(n))}</b></td>
+      <td>${rupiah(gajiTerpakai(n))}</td>
+      <td><b>${rupiah(sisaGaji(n))}</b></td>
+      <td><button type="button" class="secondary btn-delete-salary" data-index="${idx}">Hapus</button></td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="9" class="empty">Belum ada nama dan gaji.</td></tr>';
+
+  const cari=document.getElementById('cari').value.toLowerCase().trim(),ft=document.getElementById('filterTanggal').value;
+  const rows=attendance.map((r,i)=>({...r,idx:i}))
+    .filter(r=>(!cari||r.nama.toLowerCase().includes(cari))&&(!ft||r.tanggal===ft))
+    .reverse();
+
+  document.getElementById('tbody').innerHTML=rows.length?rows.map(r=>{
+    const cls=r.status==='MASUK'?'masuk':r.status==='LIBUR'?'libur':'setengah';
+    return `<tr>
+      <td>${esc(r.nama)}</td>
+      <td>${formatTanggal(r.tanggal)}</td>
+      <td><span class="badge ${cls}">${esc(r.status)}</span></td>
+      <td>${rupiah(nilaiHari(r.nama,r.status))}</td>
+      <td><button type="button" class="secondary btn-delete-attendance" data-index="${r.idx}">Hapus</button></td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="5" class="empty">Belum ada riwayat.</td></tr>';
+
+  // Pasang event listener setelah tabel dibuat.
+  document.querySelectorAll('.btn-delete-salary').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const names = Object.keys(salaries).sort((a,b)=>a.localeCompare(b,'id'));
+      const index = Number(this.dataset.index);
+      if (!Number.isInteger(index) || !names[index]) return;
+      hapusGaji(names[index]);
+    });
+  });
+
+  document.querySelectorAll('.btn-delete-attendance').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const index = Number(this.dataset.index);
+      if (!Number.isInteger(index)) return;
+      hapusAbsensi(index);
+    });
+  });
+}
+function exportCSV(){
+  if(!attendance.length){alert('Belum ada data absensi.');return;}
+  let csv='NAMA,GAJI_PER_HARI,TANGGAL,STATUS,NILAI_HARI,TOTAL_GAJI_TERKUMPUL\\n';
+  attendance.forEach(r=>{
+    csv+=`"${r.nama.replaceAll('"','""')}",${salaries[r.nama]||0},"${r.tanggal}","${r.status}",${nilaiHari(r.nama,r.status)},${totalNama(r.nama)}\\n`;
+  });
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='catatan-gaji.csv';a.click();URL.revokeObjectURL(url);
+}
+refreshNames();refreshUsedNames();render();
+</script>
+</body>
+</html>
